@@ -35,7 +35,7 @@ RUN git clone https://github.com/mikebrady/nqptp.git /tmp/nqptp && \
 RUN git clone https://github.com/mikebrady/shairport-sync.git /tmp/shairport-sync && \
     cd /tmp/shairport-sync && \
     autoreconf -iW none && \
-    ./configure --with-systemd-startup=no --with-alsa --with-pa --with-avahi --with-mqtt-client --with-soxr --with-metadata && \
+    ./configure --with-systemd-startup=no --with-alsa --with-pa --with-avahi --with-mqtt-client --with-soxr --with-metadata --with-ssl=openssl && \
     make && \
     make install DESTDIR=/tmp/install
 
