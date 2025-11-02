@@ -35,23 +35,47 @@ Then install the "Airplay 2" add-on from the store and configure it through the 
 
 **Best for:** Users running Home Assistant in Docker Container mode who cannot use add-ons.
 
-📖 **Detailed Guide:** See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
+📖 **Detailed Guide:** See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) and [ARCHITECTURE.md](ARCHITECTURE.md)
 
-🚀 **Quick Start:**
-```bash
-# Download required files
-wget https://raw.githubusercontent.com/JohannVR/JohannVRs-Home-Assistant-Addons/main/Airplay2/docker-compose.yml
-wget https://raw.githubusercontent.com/JohannVR/JohannVRs-Home-Assistant-Addons/main/Airplay2/.env.example
-wget https://raw.githubusercontent.com/JohannVR/JohannVRs-Home-Assistant-Addons/main/Airplay2/deploy.sh
+🏗️ **Architecture Choices:**
 
-# Configure
-cp .env.example .env
-# Edit .env with your settings
+#### Native Docker Architecture (Recommended)
+- ✅ Modern container best practices
+- ✅ Lower resource overhead
+- ✅ Simpler debugging
+- 🚀 **Quick Start:**
+  ```bash
+  # Download required files
+  wget https://raw.githubusercontent.com/JohannVR/JohannVRs-Home-Assistant-Addons/main/Airplay2/docker-compose.native.yml
+  wget https://raw.githubusercontent.com/JohannVR/JohannVRs-Home-Assistant-Addons/main/Airplay2/.env.example
 
-# Deploy
-chmod +x deploy.sh
-./deploy.sh deploy
-```
+  # Configure
+  cp docker-compose.native.yml docker-compose.yml
+  cp .env.example .env
+  # Edit .env with your settings
+
+  # Deploy
+  docker-compose up -d --build
+  ```
+
+#### Legacy Supervisord Architecture
+- ✅ Compatible with original add-on design
+- ✅ Automatic process recovery
+- 🚀 **Quick Start:**
+  ```bash
+  # Download required files
+  wget https://raw.githubusercontent.com/JohannVR/JohannVRs-Home-Assistant-Addons/main/Airplay2/docker-compose.yml
+  wget https://raw.githubusercontent.com/JohannVR/JohannVRs-Home-Assistant-Addons/main/Airplay2/.env.example
+  wget https://raw.githubusercontent.com/JohannVR/JohannVRs-Home-Assistant-Addons/main/Airplay2/deploy.sh
+
+  # Configure
+  cp .env.example .env
+  # Edit .env with your settings
+
+  # Deploy
+  chmod +x deploy.sh
+  ./deploy.sh deploy
+  ```
 
 **Key Differences:**
 

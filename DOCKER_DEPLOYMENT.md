@@ -294,6 +294,80 @@ docker-compose exec airplay2 bash
    # Then logout and login again
    ```
 
+### Container Startup Issues
+
+If the container fails to start, immediately exits, or services keep restarting:
+
+1. **Check logs and service status:**
+   ```bash
+   # View container logs
+   docker-compose logs airplay2
+   docker-compose logs -f airplay2
+
+   # Check service status inside container
+   docker-compose exec airplay2 supervisorctl status
+   ```
+
+2. **Avahi daemon keeps restarting (exit status 255):**
+   ```bash
+   # Check if D-Bus socket is accessible
+   docker-compose exec airplay2 ls -la /run/dbus/system_bus_socket
+   docker-compose exec airplay2 ls -la /var/run/dbus/system_bus_socket
+
+   # Solution: Ensure host has D-Bus running
+   systemctl status dbus
+   sudo systemctl start dbus  # if not running
+
+   # Check D-Bus socket permissions
+   ls -la /run/dbus/system_bus_socket /var/run/dbus/system_bus_socket
+   ```
+
+3. **Shairport-sync crashes (exit status 1):**
+   ```bash
+   # Check configuration file was generated correctly
+   docker-compose exec airplay2 cat /etc/shairport-sync.conf
+
+   # Manually run configuration script
+   docker-compose exec airplay2 /apply-config.sh
+
+   # Check for missing audio devices
+   docker-compose exec airplay2 aplay -l
+   ```
+
+4. **Container immediately exits:**
+   ```bash
+   # Check if correct Docker image exists
+   docker images | grep johannvr
+
+   # Verify architecture compatibility
+   uname -m
+   # Should match: amd64, aarch64, armv7, i386, armhf
+
+   # Pull correct image manually
+   docker pull johannvr/ha-airplay2-amd64-debian:latest  # replace with your arch
+   ```
+
+5. **Debug container interactively:**
+   ```bash
+   # Stop the container
+   docker-compose down
+
+   # Start with bash instead of the default command
+   docker-compose run --rm airplay2 bash
+
+   # Inside container, manually test services:
+   /apply-config.sh
+   nqptp &
+   avahi-daemon --no-chroot &
+   shairport-sync
+   ```
+
+6. **Common fixes:**
+   - **Restart Docker service:** `sudo systemctl restart docker`
+   - **Clean up Docker resources:** `docker system prune -a`
+   - **Recreate container:** `docker-compose down && docker-compose up -d`
+   - **Check system resources:** `df -h` and `free -h`
+
 ### MQTT Integration Issues
 
 1. **Connection problems:**

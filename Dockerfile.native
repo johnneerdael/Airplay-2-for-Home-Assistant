@@ -1,0 +1,98 @@
+# Multi-stage Dockerfile for AirPlay 2
+# This version eliminates supervisord and uses Docker-native process management
+
+# Build stage
+FROM debian:bullseye-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    autoconf \
+    automake \
+    libtool \
+    libpopt-dev \
+    libconfig-dev \
+    libssl-dev \
+    libsoxr-dev \
+    libavahi-client-dev \
+    libasound2-dev \
+    libpulse-dev \
+    libglib2.0-dev \
+    libsndfile1-dev \
+    libmosquitto-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone and build nqptp
+RUN git clone https://github.com/mikebrady/nqptp.git /tmp/nqptp && \
+    cd /tmp/nqptp && \
+    autoreconf -iW none && \
+    ./configure --with-systemd-startup=no && \
+    make && \
+    make install DESTDIR=/tmp/install
+
+# Clone and build shairport-sync
+RUN git clone https://github.com/mikebrady/shairport-sync.git /tmp/shairport-sync && \
+    cd /tmp/shairport-sync && \
+    autoreconf -iW none && \
+    ./configure --with-systemd-startup=no --with-alsa --with-pa --with-avahi --with-mqtt-client --with-soxr --with-metadata && \
+    make && \
+    make install DESTDIR=/tmp/install
+
+# Production stage
+FROM debian:bullseye-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libpopt0 \
+    libconfig9 \
+    libssl1.1 \
+    libsoxr0 \
+    libavahi-client3 \
+    libasound2 \
+    libpulse0 \
+    libglib2.0-0 \
+    libsndfile1 \
+    libmosquitto1 \
+    avahi-daemon \
+    avahi-utils \
+    dbus \
+    pulseaudio \
+    pulseaudio-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 airplay && \
+    usermod -a -G audio airplay
+
+# Copy built binaries from builder stage
+COPY --from=builder /tmp/install/usr/local /usr/local
+
+# Copy application files
+COPY apply-config.sh /apply-config.sh
+COPY supervisord.conf /etc/shairport-sync.conf.template
+
+# Create necessary directories
+RUN mkdir -p /var/run/dbus /var/lib/avahi /config && \
+    chown -R airplay:airplay /config && \
+    chmod +x /apply-config.sh
+
+# Set up entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Switch to non-root user
+USER airplay
+
+# Expose AirPlay ports (for documentation purposes - host networking bypasses these)
+EXPOSE 5000/tcp 6000/tcp 7000/tcp
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD pgrep -f "shairport-sync" || exit 1
+
+# Set entrypoint
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
+# Default command - this can be overridden for debugging
+CMD ["shairport-sync"]

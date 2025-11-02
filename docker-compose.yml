@@ -42,22 +42,22 @@ services:
       # - RESYNC_RECOVERY_TIME_IN_SECONDS=0.1
       # - AUDIO_BACKEND_BUFFER_DESIRED_LENGTH_IN_SECONDS=0.15
 
-    # Volume for persistent configuration data
-    volumes:
-      - ./config:/config
-
     # Device access for audio hardware (optional but recommended)
     # Uncomment these if you need direct access to audio devices:
     # devices:
     #   - /dev/snd:/dev/snd  # Direct ALSA device access
 
-    # D-Bus socket for PulseAudio system access (required for pa backend)
+    # Volume mounts for persistent configuration and system access
     volumes:
-      - /run/dbus:/run/dbus:ro
+      - ./config:/config  # Persistent configuration data
+      - /run/dbus:/run/dbus:ro  # D-Bus socket for Avahi and PulseAudio
+      - /var/run/dbus:/var/run/dbus:ro  # Alternative D-Bus socket path
 
-    # Security capabilities for audio device access
+    # Security capabilities for system services and audio
     cap_add:
       - SYS_NICE  # Required for real-time audio processing
+      - NET_RAW   # Required for Avahi mDNS functionality
+      - NET_BIND_SERVICE  # Required for binding to privileged ports
 
     # Health check to ensure the service is running
     healthcheck:

@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  airplay2:
+    build:
+      context: .
+      dockerfile: Dockerfile.native
+    image: airplay2-native:latest
+    container_name: airplay2-native
+    restart: unless-stopped
+
+    # Host networking is required for mDNS/Bonjour service discovery
+    # AirPlay 2 uses multicast DNS which doesn't work reliably with bridge networking
+    network_mode: host
+
+    # Environment variables for configuration
+    env_file:
+      - .env
+
+    # Volume mounts for persistent configuration and system access
+    volumes:
+      - ./config:/config  # Persistent configuration data
+      - /run/dbus:/run/dbus:ro  # D-Bus socket for Avahi and PulseAudio
+      - /var/run/dbus:/var/run/dbus:ro  # Alternative D-Bus socket path
+      - /var/lib/avahi:/var/lib/avahi  # Avahi data directory
+
+    # Security capabilities for system services and audio
+    cap_add:
+      - SYS_NICE  # Required for real-time audio processing
+      - NET_RAW   # Required for Avahi mDNS functionality
+      - NET_BIND_SERVICE  # Required for binding to privileged ports
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+    # Health check to ensure the service is running
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "shairport-sync"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # Run as non-root user for security
+    user: "1000"
