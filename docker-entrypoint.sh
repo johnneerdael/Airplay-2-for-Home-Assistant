@@ -117,6 +117,19 @@ fi
 
 # Run configuration script
 print_info "Applying configuration..."
+
+# Copy template if it doesn't exist
+if [ ! -f "/etc/shairport-sync.conf" ]; then
+    if [ -f "/etc/shairport-sync.conf.template" ]; then
+        print_info "Creating shairport-sync.conf from template..."
+        cp /etc/shairport-sync.conf.template /etc/shairport-sync.conf
+    else
+        print_error "Template file not found - cannot create configuration"
+        exit 1
+    fi
+fi
+
+# Apply configuration
 /apply-config.sh
 
 # Check if configuration was successful

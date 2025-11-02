@@ -70,7 +70,7 @@ COPY --from=builder /tmp/install/usr/local /usr/local
 
 # Copy application files
 COPY apply-config.sh /apply-config.sh
-COPY supervisord.conf /etc/shairport-sync.conf.template
+COPY shairport-sync.conf.template /etc/shairport-sync.conf.template
 
 # Create necessary directories
 RUN mkdir -p /var/run/dbus /var/lib/avahi /config && \
