@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  airplay2:
+    # Use buildx to select appropriate image based on host architecture
+    # This requires Docker Buildx support or manual image selection
+    platform: linux/amd64,linux/arm64,linux/arm/v7,linux/386,linux/arm/v6
+    image: johannvr/ha-airplay2-${ARCH:-amd64}-debian:latest
+    container_name: airplay2-home-assistant
+    restart: unless-stopped
+
+    # Host networking is required for mDNS/Bonjour service discovery
+    # AirPlay 2 uses multicast DNS which doesn't work reliably with bridge networking
+    network_mode: host
+
+    # Environment variables for configuration
+    # These map 1:1 from the Home Assistant add-on options
+    env_file:
+      - .env
+
+    # Volume for persistent configuration data
+    volumes:
+      - ./config:/config
+
+    # D-Bus socket for PulseAudio system access (required for pa backend)
+    volumes:
+      - /run/dbus:/run/dbus:ro
+
+    # Device access for audio hardware (optional but recommended)
+    # Uncomment these if you need direct access to audio devices:
+    # devices:
+    #   - /dev/snd:/dev/snd  # Direct ALSA device access
+
+    # Security capabilities for audio device access
+    cap_add:
+      - SYS_NICE  # Required for real-time audio processing
+
+    # Health check to ensure the service is running
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "shairport-sync"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Optional: Add resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M

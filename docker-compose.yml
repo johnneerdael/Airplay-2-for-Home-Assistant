@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  airplay2:
+    image: johannvr/ha-airplay2-amd64-debian:latest
+    container_name: airplay2-home-assistant
+    restart: unless-stopped
+
+    # Host networking is required for mDNS/Bonjour service discovery
+    # AirPlay 2 uses multicast DNS which doesn't work reliably with bridge networking
+    network_mode: host
+
+    # Environment variables for configuration
+    # These map 1:1 from the Home Assistant add-on options
+    environment:
+      # Basic AirPlay configuration
+      - AIRPLAY_NAME=Home Assistant  # Name shown in AirPlay device list
+      - AUDIO_BACKEND_LATENCY_OFFSET=0.0  # Audio sync offset in seconds
+      - INTERPOLATION=auto  # Audio interpolation method (auto/basic/none)
+      - OUTPUT_BACKEND=pa  # Audio backend: pa (PulseAudio) or alsa
+      - DEFAULT_AIRPLAY_VOLUME=-24.0  # Default volume in dB
+
+      # MQTT configuration (optional - set to "yes" to enable)
+      - MQTT_ENABLED=no
+      - MQTT_HOST=core-mosquitto  # MQTT broker hostname
+      - MQTT_USERNAME=user  # MQTT username
+      - MQTT_PASSWORD=password  # MQTT password
+      - MQTT_PUBLISH_COVER=no  # Publish album art via MQTT
+
+      # Advanced audio configuration (optional)
+      # - VOLUME_MAX_DB=0.0
+      # - OUTPUT_FORMAT=S16
+      # - OUTPUT_RATE=44100
+      # - USE_PRECISION_TIMING=yes
+      # - DISABLE_STANDBY_MODE=no
+      # - HIGH_THRESHOLD_AIRPLAY_VOLUME=-10.0
+      # - MIXER_CONTROL_NAME=Master
+      # - MIXER_CONTROL_INDEX=0
+      # - VOLUME_CONTROL_COMBINED_HARDWARE_PRIORITY=hardware
+      # - DRIFT_TOLERANCE_IN_SECONDS=0.002
+      # - RESYNC_THRESHOLD_IN_SECONDS=0.05
+      # - RESYNC_RECOVERY_TIME_IN_SECONDS=0.1
+      # - AUDIO_BACKEND_BUFFER_DESIRED_LENGTH_IN_SECONDS=0.15
+
+    # Volume for persistent configuration data
+    volumes:
+      - ./config:/config
+
+    # Device access for audio hardware (optional but recommended)
+    # Uncomment these if you need direct access to audio devices:
+    # devices:
+    #   - /dev/snd:/dev/snd  # Direct ALSA device access
+
+    # D-Bus socket for PulseAudio system access (required for pa backend)
+    volumes:
+      - /run/dbus:/run/dbus:ro
+
+    # Security capabilities for audio device access
+    cap_add:
+      - SYS_NICE  # Required for real-time audio processing
+
+    # Health check to ensure the service is running
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "shairport-sync"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Optional: Add resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+# Optional: Use external .env file for configuration
+# Create a .env file in the same directory as this compose file
+# and uncomment the line below to use it:
+# env_file:
+#   - .env
